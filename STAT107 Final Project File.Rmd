@@ -1,0 +1,189 @@
+---
+title: "Is There a Correlation Between Less Than 8 Hours of Sleep and Cognitive Function?"
+author: "Ethan Choi - echoi090"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This project will aim to investigate whether sleeping fewer than eight hours per night has a significant impact on cognitive function. Using an open source dataset provided by Kaggle, this analysis examines cognitive performance metrics such as reaction time and working memory accuracy to determine if a relationship exists. 
+
+## Load the Dataset
+
+```{r}
+# Load the dataset
+data <- read.csv("sleep_deprivation_dataset_detailed.csv")
+head(data)
+str(data)
+```
+
+## Data Cleaning, Categorize Data by Less than or More than 8 hours
+
+```{r}
+# Remove missing values
+data <- na.omit(data)
+
+# Categorize sleep hours
+data$SleepCategory <- ifelse(data$Sleep_Hours < 8, "Less than 8 hours", "8 or more hours")
+```
+
+## Variable Definitions
+
+- **Stroop Task Reaction Time:** This measures cognitive processing speed. A longer reaction time indicates slower cognitive functions.
+- **N-Back Accuracy:** This assesses working memory performance. Higher accuracy indicates better cognitive functioning.
+- **Sleep Hours:** Total hours of sleep per night.
+
+## Summary Statistics
+
+```{r}
+# Get summary statistics for indicated variables
+summary(data$Sleep_Hours)
+summary(data$Stroop_Task_Reaction_Time)
+summary(data$N_Back_Accuracy)
+```
+
+## Correlation Analysis
+
+```{r}
+# Compute correlation between sleep hours and cognitive metrics
+cor_test_reaction <- cor(data$Sleep_Hours, data$Stroop_Task_Reaction_Time)
+cor_test_accuracy <- cor(data$Sleep_Hours, data$N_Back_Accuracy)
+print(paste("Correlation between Sleep Hours and Reaction Time:", round(cor_test_reaction, 3)))
+print(paste("Correlation between Sleep Hours and N-Back Accuracy:", round(cor_test_accuracy, 3)))
+```
+### Correlation Statistic Interpretation:
+A correlation of 0.056 between Sleep Hours and Reaction Time suggests a weak positive relationship, meaning sleep duration has some impact on reaction speed. A correlation of -0.11 between Sleep Hours and N-Back Accuracy indicates a weak negative relationship, suggesting that those who sleep less might have slightly better accuracy (this isn't logical, so we are going to do further analysis), but the effect is small and can't be guaranteed.
+
+## Visualization 
+### Boxplot for Sleep Category vs Stroop Task Reaction Time
+```{r}
+boxplot(Stroop_Task_Reaction_Time ~ SleepCategory, data=data,
+        main="Reaction Time by Sleep Category",
+        xlab="Sleep Category", ylab="Reaction Time (ms)",
+        col=c("pink", "lightblue"))
+```
+
+### Boxplot Interpretation: 
+The "Less than 8 hours" boxplot indicates slightly longer reaction times, but not by too much, just as predicted by our correlation statistic.
+
+
+## Histogram for Reaction Time
+
+```{r}
+hist(data$Stroop_Task_Reaction_Time[data$Sleep_Hours < 8], 
+     main="Histogram of Reaction Time (<8 Hours of Sleep)", 
+     xlab="Reaction Time (ms)", col="pink", breaks=10, probability=TRUE)
+hist(data$Stroop_Task_Reaction_Time[data$Sleep_Hours >= 8], 
+     col=rgb(0,0,1,0.5), breaks=10, probability=TRUE, add=TRUE)
+legend("topright", legend=c("<8 Hours", "8+ Hours"), fill=c("pink", "lightblue"))
+```
+
+### Histogram Interpretation: 
+This histogram overlaps both sleep categories, giving more insight on the relationship between sleep hours and reaction time. Again, there is a slight but noticeable difference.
+
+
+## Boxplot for Sleep Category vs N-Back Accuracy
+```{r}
+boxplot(N_Back_Accuracy ~ SleepCategory, data=data,
+        main="N-Back Accuracy by Sleep Category",
+        xlab="Sleep Category", ylab="N-Back Accuracy (%)",
+        col=c("lightcyan", "lavender"))
+```
+
+### Boxplot Interpretation:
+Higher N-Back accuracy scores indicate better cognitive performance. A higher median in the "Less than 8 hours" category does not support our hypothesis that insufficient sleep impairs cognitive function. In fact, it disproves it and isn't logical either.
+
+
+## Density plot for N-Back Accuracy
+```{r}
+range_nback <- range(data$N_Back_Accuracy)
+range_density <- range(density(data$N_Back_Accuracy[data$Sleep_Hours < 8])$y, 
+                        density(data$N_Back_Accuracy[data$Sleep_Hours >= 8])$y)
+plot(density(data$N_Back_Accuracy[data$Sleep_Hours < 8]), 
+     main="Density Plot of N-Back Accuracy", xlab="N-Back Accuracy (%)", col="pink", lwd=2, xlim=range_nback, ylim=c(0, max(range_density) * 1.2))
+lines(density(data$N_Back_Accuracy[data$Sleep_Hours >= 8]), col="lightblue", lwd=2)
+legend("topright", legend=c("<8 Hours", "8+ Hours"), col=c("pink", "lightblue"), lwd=2)
+```
+
+### Density Graph Interpretation: 
+This density plot better shows a distribution of cognitive accuracy scores. If the red curve (less than 8 hours) or blue curve (more than 8 hours) skews lower, it suggests worse cognitive performance for sleep-deprived individuals and well-rested indivuduals, respectively. Since both seem to have similar skewness with variability, a definite relationship cannot be determined. This means that other factors may be at play.
+
+
+# Additional Analysis: Stress and Lifestyle Factors
+```{r}
+# Summary statistics for stress and physical activity
+summary(data$Stress_Level)
+summary(data$Physical_Activity_Level)
+```
+
+
+```{r}
+# Compute correlation between stress/activity levels and cognitive metrics
+cor_test_stress <- cor(data$Stress_Level, data$N_Back_Accuracy)
+cor_test_activity <- cor(data$Physical_Activity_Level, data$N_Back_Accuracy)
+print(paste("Correlation between Stress Level and N-Back Accuracy:", round(cor_test_stress, 3)))
+print(paste("Correlation between Physical Activity Level and N-Back Accuracy:", round(cor_test_activity, 3)))
+```
+
+## Correlation Interpretation:
+A correlation of -0.123 between Stress Level and N-Back Accuracy suggests that higher stress is weakly associated with lower cognitive accuracy. A correlation of -0.178 between Physical Activity Level and N-Back Accuracy suggests that individuals with higher activity levels might perform slightly better in cognitive tasks
+
+
+## Visualization of Stress and Activity Levels
+### Boxplot for Stress Level vs N-Back Accuracy
+```{r}
+boxplot(N_Back_Accuracy ~ cut(data$Stress_Level, breaks=3), data=data,
+        main="N-Back Accuracy by Stress Level",
+        xlab="Stress Level (Low to High)", ylab="N-Back Accuracy (%)",
+        col=c("tan", "lavender", "lightgreen"))
+```
+  
+### Boxplot Interpretation: 
+Higher stress levels indicate poor cognitive performance.
+
+## Boxplot for Physical Activity Level vs N-Back Accuracy and Stroop Task Reaction Time
+```{r}
+boxplot(N_Back_Accuracy ~ cut(data$Physical_Activity_Level, breaks=3), data=data,
+        main="N-Back Accuracy by Physical Activity Level",
+        xlab="Physical Activity Level (Low to High)", ylab="N-Back Accuracy (%)",
+        col=c("gray", "white", "navy"))
+
+boxplot(Stroop_Task_Reaction_Time ~ cut(data$Physical_Activity_Level, breaks=3), data=data,
+        main="Reaction Time by Physical Activity Level",
+        xlab="Physical Activity Level (Low to High)", ylab="Reaction Time (ms)",
+        col=c("gray", "white", "navy"))
+```
+
+### Boxplots Interpretation:
+Higher physical activity levels don't contribute to a worsened cognitive performance, but they significantly improve reaction times.
+
+
+# Summary
+**Reaction Time**: The boxplot suggests that individuals sleeping fewer than 8 hours tend to have longer reaction times, implying slower cognitive processing.
+
+**Cognitive Accuracy**: The N-Back Accuracy boxplot does not explicitly show that individuals with less than 8 hours of sleep tend to perform worse on memory recall tasks. In addition, our density graoh is varied, showing that sleep can or cannot affect N-Back Accuracy. This means that other factors must be at play for cognitive accuracy, rather than just sleep hours
+
+**Stress and Cognitive Performance**: Higher stress levels indicate lower N-Back Accuracy scores, suggesting that stress negatively affects cognitive performance and memory.
+
+**Physical Activity and Cognitive Performance**: Higher activity levels are associated with better reaction times, implying that exercise contributes positively to cognitive processing speeds.
+
+# Conclusion
+This analysis concludes that while sleep duration influences cognitive performance, other factors such as stress levels and physical activity also contribute significantly. Future research should consider these additional lifestyle factors when evaluating cognitive function.
+
+
+#### Sources
+https://www.nceas.ucsb.edu/sites/default/files/2020-04/colorPaletteCheatsheet.pdf
+
+https://sqlpad.io/tutorial/boxplots-r-comprehensive-guide/
+
+https://www.datacamp.com/doc/r/histograms-and-density
+
+https://www.geeksforgeeks.org/add-legend-to-plot-in-r/
+```
